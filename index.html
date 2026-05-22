@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task & Holiday Dashboard</title>
+
+    <!-- เพิ่ม Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+      /* ---- Global Layout ---- */
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        height: 100vh;
+        overflow: hidden; /* Prevent body scrolling */
+        background-color: #f4f7f6;
+        color: #333;
+      }
+
+      #left-pane {
+        flex: 3;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        border-right: 3px solid #d1d5db;
+        background-color: #ffffff;
+        height: 100%;
+        box-sizing: border-box;
+      }
+
+      #right-pane {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background-color: #eaeff2;
+        min-width: 380px;
+        height: 100%;
+        box-sizing: border-box;
+      }
+
+      /* จัดกลุ่ม Task List ให้อยู่กึ่งกลางหน้าจออย่างสมส่วน */
+      .right-pane-container {
+        max-width: 480px;
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header-area {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 15px;
+      }
+
+      .header-area h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        color: #2c3e50;
+      }
+
+      .header-area p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #7f8c8d;
+      }
+
+      /* ---- User Profile Area (Access Code Profile) ---- */
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        background: #f7fafc;
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+      }
+      .user-profile:hover {
+        background: #edf2f7;
+        border-color: #cbd5e0;
+      }
+      .user-email {
+        font-weight: 600;
+        color: #2b6cb0;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .user-fullname-display {
+        font-weight: 700;
+        color: #2d3748;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .btn-logout {
+        background: #718096;
+        color: white;
+        border: none;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .btn-logout:hover {
+        background: #4a5568;
+      }
+
+      /* ---- 6-Month Grid Layout ---- */
+      #calendar-container {
+        flex-grow: 1;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 12px;
+        min-height: 0;
+      }
+
+      /* ---- Individual Month Styling ---- */
+      .month-wrapper {
+        display: flex;
+        flex-direction: column;
+        background: #fdfcfb;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      }
+
+      .month-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 8px;
+        color: #4a5568;
+      }
+
+      .calendar-grid {
+        flex-grow: 1;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-auto-rows: 1fr;
+        gap: 2px;
+      }
+
+      .day-header {
+        font-size: 0.75rem;
+        font-weight: bold;
+        text-align: center;
+        color: #a0aec0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .day-cell {
+        border-radius: 4px;
+        border: 1px solid transparent;
+        background: #fff;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        position: relative;
+        user-select: none;
+        font-size: 0.85rem;
+      }
+
+      .day-cell:hover {
+        border-color: #cbd5e0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+      }
+
+      .day-number {
+        font-weight: 500;
+        color: #4a5568;
+        z-index: 2;
+      }
+
+      /* --- Weekend Styling --- */
+      .day-header.is-sunday {
+        color: #e53e3e;
+      }
+      .day-header.is-saturday {
+        color: #3182ce;
+      }
+
+      .day-cell.is-sunday .day-number {
+        color: #e53e3e;
+      }
+      .day-cell.is-saturday .day-number {
+        color: #3182ce;
+      }
+
+      /* --- Day Status Indicators --- */
+      .day-cell.is-today {
+        border: 2px solid #3182ce;
+        font-weight: bold;
+      }
+
+      .day-cell.is-holiday {
+        background: #fff0f5;
+        color: #b76e79;
+      }
+      .day-cell.is-holiday .day-number {
+        color: #b76e79 !important;
+      }
+
+      .day-cell.has-event {
+        background: #ebf8ff;
+      }
+
+      .event-dot {
+        display: none;
+        color: #3182ce;
+        font-size: 1.2rem;
+        line-linecap: 0.5;
+        margin-top: 2px;
+      }
+      .day-cell.has-event .event-dot {
+        display: block;
+      }
+
+      /* ---- Right Pane Cards UI/UX ---- */
+      #right-pane h2 {
+        margin-top: 0;
+        font-size: 1.3rem;
+        color: #2c3e50;
+        border-bottom: 2px solid #cbd5e0;
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+        line-height: 1.4;
+      }
+
+      /* ---- Filter Toggle ---- */
+      .filter-container {
+        display: flex;
+        background: #e2e8f0;
+        border-radius: 8px;
+        padding: 4px;
+        margin-bottom: 20px;
+      }
+      .filter-btn {
+        flex: 1;
+        padding: 8px 0;
+        border: none;
+        background: transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #718096;
+        transition: all 0.2s ease;
+      }
+      .filter-btn.active {
+        background: #fff;
+        color: #2b6cb0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .task-card {
+        background: #fff;
+        border-left: 5px solid #3182ce;
+        padding: 16px;
+        margin-bottom: 16px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        animation: fadeIn 0.3s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .task-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .task-card.expired {
+        border-left-color: #a0aec0;
+        opacity: 0.85;
+      }
+
+      .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      .task-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+        color: #2b6cb0;
+        line-height: 1.4;
+        border: 1px solid #bee3f8;
+        background-color: #ebf8ff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        flex-grow: 1;
+      }
+
+      .task-actions {
+        display: flex;
+        gap: 5px;
+        align-items: flex-start;
+        flex-shrink: 0;
+        margin-left: 10px;
+      }
+
+      .btn-action {
+        background: transparent;
+        border: none;
+        color: #a0aec0;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn-action:hover {
+        background: #edf2f7;
+        color: #4a5568;
+      }
+
+      .btn-edit:hover {
+        background: #e2e8f0;
+        color: #3182ce;
+      }
+
+      .btn-delete:hover {
+        background: #fed7d7;
+        color: #e53e3e;
+      }
+
+      .btn-pin.active {
+        color: #d69e2e;
+      }
+
+      .btn-pin.active:hover {
+        background: #fef08a;
+      }
+
+      .task-date {
+        font-size: 0.85rem;
+        color: #4a5568;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f7fafc;
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid #edf2f7;
+      }
+
+      .task-date svg {
+        color: #718096;
+        flex-shrink: 0;
+      }
+
+      .countdown {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #dd6b20;
+        background: #feebc8;
+        padding: 8px 12px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+        border: 1px solid #fbd38d;
+      }
+
+      .countdown svg {
+        flex-shrink: 0;
+      }
+
+      .countdown.expired-timer {
+        color: #718096;
+        background: #edf2f7;
+        border-color: #e2e8f0;
+      }
+
+      /* ---- Blinking Alert Animation ---- */
+      @keyframes blinkWarning {
+        0% {
+          box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.4);
+          border-left-color: #e53e3e;
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(229, 62, 62, 0);
+          border-left-color: #fc8181;
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(229, 62, 62, 0);
+          border-left-color: #e53e3e;
+        }
+      }
+
+      .task-card.blink-warning {
+        animation: blinkWarning 1.5s infinite;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ---- Modal Styling ---- */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(2px);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .modal-content {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        width: 380px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .modal-content h3 {
+        margin-top: 0;
+        color: #2d3748;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #4a5568;
+      }
+
+      .form-group input[type="text"],
+      .form-group input[type="date"],
+      .form-group input[type="time"],
+      .form-group input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+
+      .form-group input[type="text"]:focus,
+      .form-group input[type="date"]:focus,
+      .form-group input[type="time"]:focus,
+      .form-group input[type="number"]:focus {
+        outline: none;
+        border-color: #3182ce;
+        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+      }
+
+      .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-family: inherit;
+        resize: vertical;
+      }
+
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #3182ce;
+        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+      }
+
+      .task-description {
+        display: none;
+        margin-top: 12px;
+        padding: 12px;
+        background: #f8fafc;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        color: #4a5568;
+        border: 1px dashed #cbd5e0;
+        line-height: 1.5;
+      }
+
+      .task-description a {
+        color: #3182ce;
+        text-decoration: none;
+      }
+
+      .task-description a:hover {
+        text-decoration: underline;
+        color: #2b6cb0;
+      }
+
+      .task-card.expanded .task-description {
+        display: block;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .form-actions {
+        text-align: right;
+        margin-top: 25px;
+      }
+
+      button {
+        padding: 9px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: background 0.2s;
+      }
+
+      .btn-cancel {
+        background: #e2e8f0;
+        color: #4a5568;
+        margin-right: 10px;
+      }
+      .btn-cancel:hover {
+        background: #cbd5e0;
+      }
+
+      .btn-save {
+        background: #3182ce;
+        color: white;
+      }
+      .btn-save:hover {
+        background: #2b6cb0;
+      }
+
+      .btn-delete-confirm {
+        background: #e53e3e;
+        color: white;
+      }
+      .btn-delete-confirm:hover {
+        background: #c53030;
+      }
+
+      /* ---- Access Code Screen Layout ---- */
+      #access-screen {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        box-sizing: border-box;
+        padding: 20px;
+      }
+
+      .access-card {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 440px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        box-sizing: border-box;
+      }
+
+      .access-card h2 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #2c3e50;
+        text-align: center;
+      }
+
+      .access-card p {
+        color: #718096;
+        font-size: 0.9rem;
+        margin-bottom: 25px;
+        text-align: center;
+        line-height: 1.4;
+      }
+
+      /* ---- Mobile Responsive & Floating Buttons ---- */
+      #mobile-add-btn {
+        display: none;
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #3182ce;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        box-shadow: 0 4px 15px rgba(49, 130, 206, 0.4);
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      #mobile-refresh-btn {
+        display: none;
+        position: fixed;
+        bottom: 30px;
+        right: 105px; /* 30px + 60px size + 15px gap */
+        background: #ffffff;
+        color: #3182ce;
+        border: 2px solid #e2e8f0;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      #mobile-add-btn:active,
+      #mobile-refresh-btn:active {
+        transform: scale(0.95);
+      }
+
+      /* สปินแอนิเมชันสำหรับปุ่มรีเฟรช */
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .spinning {
+        animation: spin 0.8s linear infinite;
+      }
+
+      @media (max-width: 800px) {
+        #left-pane {
+          display: none;
+        }
+        #right-pane {
+          min-width: 100%;
+          padding: 15px;
+        }
+        #mobile-add-btn,
+        #mobile-refresh-btn {
+          display: flex;
+        }
+        .modal-content {
+          width: 90%;
+          max-width: 380px;
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Screen สำหรับให้กรอกรหัสส่วนตัว (Access Code) และ ชื่อผู้ใช้งาน / กลุ่ม -->
+    <div id="access-screen">
+      <div class="access-card">
+        <h2>บอร์ดปฏิทินงานออนไลน์</h2>
+        <p>
+          กรอกรหัสบอร์ด
+          และระบุชื่อเจ้าของหรือชื่อกลุ่มเพื่อเริ่มเชื่อมต่อข้อมูลงานผ่านคลาวด์
+        </p>
+
+        <form onsubmit="handleAccessSubmit(event)">
+          <div class="form-group" style="margin-bottom: 15px">
+            <label
+              for="input-access-code"
+              style="
+                display: block;
+                font-size: 0.9rem;
+                color: #4a5568;
+                font-weight: 600;
+                margin-bottom: 5px;
+              "
+              >รหัสเข้าใช้งานส่วนตัว (Access Code)</label
+            >
+            <input
+              type="text"
+              id="input-access-code"
+              required
+              placeholder="เช่น TEAM-A, MY-PRIVATE-CODE"
+              style="
+                text-align: center;
+                font-size: 1.1rem;
+                font-weight: bold;
+                text-transform: uppercase;
+              "
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-group" style="margin-bottom: 25px">
+            <label
+              for="input-user-fullname"
+              style="
+                display: block;
+                font-size: 0.9rem;
+                color: #4a5568;
+                font-weight: 600;
+                margin-bottom: 5px;
+              "
+              >ชื่อเจ้าของบอร์ด หรือ ชื่อกลุ่ม
+              (ไม่บังคับหากบอร์ดมีในระบบอยู่แล้ว)</label
+            >
+            <input
+              type="text"
+              id="input-user-fullname"
+              placeholder="เช่น สมชาย ใจดี, ทีมวิจัยและพัฒนา"
+              style="text-align: center; font-size: 1.1rem; font-weight: 500"
+              autocomplete="off"
+            />
+          </div>
+          <button
+            type="submit"
+            style="width: 100%; font-size: 1.1rem; padding: 12px"
+            class="btn-save"
+          >
+            เข้าสู่บอร์ดงาน
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Left Window: Calendar -->
+    <div id="left-pane">
+      <div class="header-area">
+        <div>
+          <h1>Dashboard Calendar</h1>
+          <p>ดับเบิลคลิกที่วันใดก็ได้เพื่อบันทึกงานหรือกิจกรรม</p>
+        </div>
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+          "
+        >
+          <div id="holiday-status" style="font-size: 0.8rem; color: #a0aec0">
+            กำลังดึงข้อมูล...
+          </div>
+
+          <!-- ข้อมูลรหัส + ชื่อเจ้าของบอร์ด และปุ่มออกจากระบบ/เปลี่ยนรหัสบอร์ด -->
+          <div
+            class="user-profile"
+            id="user-profile-widget"
+            ondblclick="openProfileModal()"
+            title="ดับเบิลคลิกที่นี่ หรือ กด Ctrl + K เพื่อแก้ไขชื่อบอร์ดด่วน"
+          >
+            <span class="user-email">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="color: #2b6cb0"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <span id="display-user-fullname" class="user-fullname-display"
+                >...</span
+              >
+            </span>
+            <button onclick="handleLogout()" class="btn-logout">
+              เปลี่ยนบอร์ด
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid for 6 months (2 rows x 3 cols) -->
+      <div id="calendar-container"></div>
+    </div>
+
+    <!-- Right Window: To-Do List -->
+    <div id="right-pane">
+      <div class="right-pane-container">
+        <!-- แสดงชื่อเจ้าของบอร์ด/กลุ่มที่หัวข้อ Task List ใหม่ในรูปแบบ Task List (fullname) -->
+        <h2
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+          "
+        >
+          <span
+            >Task List (<span
+              id="task-list-user-fullname"
+              style="color: #2b6cb0"
+              >...</span
+            >)</span
+          >
+          <button
+            class="btn-action"
+            id="desktop-refresh-btn"
+            onclick="manualRefresh()"
+            title="รีเฟรชข้อมูลด้วยตนเอง"
+            style="
+              color: #3182ce;
+              padding: 6px;
+              border-radius: 50%;
+              display: inline-flex;
+            "
+          >
+            <svg
+              id="desktop-refresh-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"
+              />
+            </svg>
+          </button>
+        </h2>
+
+        <!-- ระบบ Toggle Filter -->
+        <div class="filter-container">
+          <button
+            class="filter-btn active"
+            id="btn-filter-upcoming"
+            onclick="setFilter('upcoming')"
+          >
+            ตั้งแต่วันนี้เป็นต้นไป
+          </button>
+          <button
+            class="filter-btn"
+            id="btn-filter-all"
+            onclick="setFilter('all')"
+          >
+            ทั้งหมด
+          </button>
+        </div>
+
+        <div id="task-list">
+          <p style="color: #a0aec0; text-align: center; margin-top: 40px">
+            ยังไม่มีงานที่บันทึกไว้
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Action Buttons สำหรับหน้าจอมือถือ -->
+    <button
+      id="mobile-refresh-btn"
+      onclick="manualRefresh()"
+      title="รีเฟรชข้อมูล"
+    >
+      <svg
+        id="mobile-refresh-icon"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+      </svg>
+    </button>
+    <button id="mobile-add-btn" onclick="openModal()" title="เพิ่มงานใหม่">
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
+
+    <!-- Modal for Adding/Editing Tasks -->
+    <div id="task-modal" class="modal-overlay">
+      <div class="modal-content">
+        <h3 id="modal-title">เพิ่มงานใหม่</h3>
+
+        <input type="hidden" id="editing-task-id" value="" />
+
+        <div class="form-group">
+          <label for="task-name">ชื่อกิจกรรม / งาน</label>
+          <input
+            type="text"
+            id="task-name"
+            list="task-suggestions"
+            placeholder="เช่น กำหนดส่งโปรเจกต์, ประชุม..."
+            autocomplete="off"
+          />
+          <datalist id="task-suggestions"></datalist>
+        </div>
+
+        <div class="form-group">
+          <label for="task-desc">รายละเอียดกิจกรรม (ไม่บังคับ)</label>
+          <textarea
+            id="task-desc"
+            rows="3"
+            placeholder="ระบุรายละเอียดเพิ่มเติม..."
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>ช่วงเวลา</label>
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              margin-bottom: 10px;
+              align-items: center;
+            "
+          >
+            <span
+              style="
+                width: 45px;
+                font-size: 0.85rem;
+                color: #718096;
+                text-align: right;
+              "
+              >เริ่ม:</span
+            >
+            <input type="date" id="start-date" style="flex: 2" />
+            <input type="time" id="start-time" style="flex: 1" />
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center">
+            <span
+              style="
+                width: 45px;
+                font-size: 0.85rem;
+                color: #718096;
+                text-align: right;
+              "
+              >สิ้นสุด:</span
+            >
+            <input type="date" id="end-date" style="flex: 2" />
+            <input type="time" id="end-time" style="flex: 1" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 8px;
+            "
+          >
+            <input
+              type="checkbox"
+              id="task-timer"
+              style="width: 18px; height: 18px"
+              onchange="toggleAlertInput()"
+            />
+            <label for="task-timer" style="margin: 0; cursor: pointer"
+              >แสดงเวลานับถอยหลัง (Countdown Timer)</label
+            >
+          </div>
+          <div
+            id="alert-settings"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-left: 26px;
+            "
+          >
+            <label
+              for="alert-days"
+              style="margin: 0; font-size: 0.85rem; color: #718096"
+              >ให้การ์ดกระพริบเตือนล่วงหน้า (วัน):</label
+            >
+            <input
+              type="number"
+              id="alert-days"
+              value="1"
+              min="0"
+              max="30"
+              style="
+                width: 60px;
+                padding: 4px;
+                border: 1px solid #cbd5e0;
+                border-radius: 4px;
+              "
+            />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+          <button class="btn-save" onclick="saveTask()">บันทึกงาน</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Delete Confirmation -->
+    <div id="confirm-modal" class="modal-overlay">
+      <div class="modal-content" style="width: 320px; text-align: center">
+        <div style="color: #e53e3e; margin-bottom: 15px">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            ></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <h3 style="color: #2d3748; margin-top: 0">ยืนยันการลบ</h3>
+        <p style="color: #4a5568; margin-bottom: 25px">
+          คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้?<br /><small
+            >การดำเนินการนี้ไม่สามารถย้อนกลับได้</small
+          >
+        </p>
+        <input type="hidden" id="delete-task-id" value="" />
+
+        <div
+          class="form-actions"
+          style="
+            justify-content: center;
+            display: flex;
+            gap: 10px;
+            margin-top: 0;
+          "
+        >
+          <button
+            class="btn-cancel"
+            onclick="closeConfirmModal()"
+            style="margin: 0; flex: 1"
+          >
+            ยกเลิก
+          </button>
+          <button
+            class="btn-delete-confirm"
+            onclick="executeDelete()"
+            style="
+              padding: 9px 16px;
+              border: none;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 0.95rem;
+              font-weight: 500;
+              transition: background 0.2s;
+              flex: 1;
+            "
+          >
+            ลบข้อมูล
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Editing Profile Name (Quick Settings) -->
+    <div id="profile-modal" class="modal-overlay">
+      <div class="modal-content" style="width: 340px">
+        <h3 style="margin-top: 0; color: #2d3748">แก้ไขข้อมูลบอร์ด</h3>
+        <div class="form-group">
+          <label for="edit-display-fullname"
+            >ชื่อเจ้าของบอร์ด หรือ ชื่อกลุ่มใหม่</label
+          >
+          <input
+            type="text"
+            id="edit-display-fullname"
+            required
+            placeholder="เช่น สมชาย ใจดี, ทีมวิจัยและพัฒนา"
+            autocomplete="off"
+          />
+        </div>
+        <p
+          style="
+            font-size: 0.75rem;
+            color: #a0aec0;
+            margin-top: -5px;
+            margin-bottom: 15px;
+          "
+        >
+          ระบบจะทำการซิงก์ชื่อใหม่ไปยังข้อมูลงานทั้งหมดของบอร์ดนี้โดยอัตโนมัติ
+        </p>
+        <div class="form-actions" style="display: flex; gap: 10px">
+          <button
+            class="btn-cancel"
+            onclick="closeProfileModal()"
+            style="flex: 1; margin: 0"
+          >
+            ยกเลิก
+          </button>
+          <button
+            class="btn-save"
+            onclick="saveNewProfileName()"
+            style="flex: 1; margin: 0"
+          >
+            บันทึกข้อมูล
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for General Alerts -->
+    <div id="alert-modal" class="modal-overlay">
+      <div class="modal-content" style="width: 320px; text-align: center">
+        <h3 id="alert-title" style="color: #2d3748; margin-top: 0">
+          แจ้งเตือน
+        </h3>
+        <p id="alert-message" style="color: #4a5568; margin-bottom: 25px"></p>
+        <div
+          class="form-actions"
+          style="
+            justify-content: center;
+            display: flex;
+            gap: 10px;
+            margin-top: 0;
+          "
+        >
+          <button
+            class="btn-save"
+            onclick="closeAlertModal()"
+            style="margin: 0; flex: 1"
+          >
+            ตกลง
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- 1. Global State ---
+      const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+
+      let tasks = [];
+      let holidayMap = new Map();
+      let currentFilter = "upcoming";
+      let userCode = ""; // รหัสส่วนตัวบอร์ด
+      let userFullname = ""; // ชื่อเจ้าของบอร์ด/กลุ่ม
+      let realtimeChannel = null; // ท่อซิงก์เรียลไทม์
+      let isFetching = false; // สถานะกำลังดึงข้อมูลเพื่อหลีกเลี่ยงคำขอซ้อนกัน
+
+      // --- Supabase Configuration ---
+      const supabaseUrl = "https://jucjmkchnjoehqrjkzss.supabase.co";
+      const supabaseKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2pta2NobmpvZWhxcmprenNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDQ0OTEsImV4cCI6MjA5MTAyMDQ5MX0.jB6zI6TS4np3ceY6r0ZjGe3Y3C089j6ltc_q673bgE0";
+
+      let supabaseClient = null;
+
+      if (supabaseKey && supabaseKey.split(".").length === 3) {
+        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+      }
+
+      // --- Custom Alert System ---
+      function showAlert(message) {
+        document.getElementById("alert-message").innerText = message;
+        document.getElementById("alert-modal").style.display = "flex";
+      }
+
+      function closeAlertModal() {
+        document.getElementById("alert-modal").style.display = "none";
+      }
+
+      // --- Autocomplete System ---
+      function updateAutocomplete() {
+        const datalist = document.getElementById("task-suggestions");
+        datalist.innerHTML = "";
+
+        const uniqueNames = [...new Set(tasks.map((t) => t.name))];
+        uniqueNames.forEach((name) => {
+          const option = document.createElement("option");
+          option.value = name;
+          datalist.appendChild(option);
+        });
+      }
+
+      // --- Access Code & Fullname Logic ---
+      function checkStoredAccessCode() {
+        const savedCode = localStorage.getItem("dashboard_user_code");
+        const savedFullname = localStorage.getItem("dashboard_user_fullname");
+        const accessScreen = document.getElementById("access-screen");
+
+        if (savedCode && savedCode.trim() !== "") {
+          userCode = savedCode.trim().toUpperCase();
+          userFullname =
+            savedFullname && savedFullname.trim() !== ""
+              ? savedFullname.trim()
+              : userCode;
+
+          accessScreen.style.display = "none";
+
+          document.getElementById("display-user-fullname").innerText =
+            userFullname;
+          document.getElementById("task-list-user-fullname").innerText =
+            userFullname;
+
+          loadTasksFromDB();
+          subscribeToRealtime(); // เริ่มการดึงข้อมูลแบบ Realtime ซิงก์ออนไลน์
+        } else {
+          accessScreen.style.display = "flex";
+        }
+      }
+
+      async function handleAccessSubmit(e) {
+        e.preventDefault();
+        const codeInput = document
+          .getElementById("input-access-code")
+          .value.trim()
+          .toUpperCase();
+        let nameInput = document
+          .getElementById("input-user-fullname")
+          .value.trim();
+
+        if (!codeInput) {
+          showAlert("กรุณาระบุรหัสบอร์ดก่อนดำเนินการ");
+          return;
+        }
+
+        if (!nameInput) {
+          if (supabaseClient) {
+            const { data, error } = await supabaseClient
+              .from("tasks")
+              .select("user_fullname")
+              .eq("user_code", codeInput)
+              .not("user_fullname", "is", null)
+              .limit(1);
+
+            if (error) {
+              console.error("Error fetching existing user_fullname:", error);
+            }
+
+            if (data && data.length > 0 && data[0].user_fullname) {
+              nameInput = data[0].user_fullname;
+            } else {
+              nameInput = codeInput;
+            }
+          } else {
+            nameInput = codeInput;
+          }
+        }
+
+        localStorage.setItem("dashboard_user_code", codeInput);
+        localStorage.setItem("dashboard_user_fullname", nameInput);
+        checkStoredAccessCode();
+      }
+
+      function handleLogout() {
+        // ยกเลิก Real-time subscription เดิม
+        if (supabaseClient && realtimeChannel) {
+          supabaseClient.removeChannel(realtimeChannel);
+          realtimeChannel = null;
+        }
+
+        localStorage.removeItem("dashboard_user_code");
+        localStorage.removeItem("dashboard_user_fullname");
+        userCode = "";
+        userFullname = "";
+        tasks = [];
+        renderTasks();
+        updateCalendarVisuals();
+
+        document.getElementById("input-access-code").value = "";
+        document.getElementById("input-user-fullname").value = "";
+        document.getElementById("access-screen").style.display = "flex";
+      }
+
+      // --- 2. Database for Tasks (Supabase filtered by user_code) ---
+      async function loadTasksFromDB(isManual = false) {
+        if (!supabaseClient) {
+          console.warn("Supabase client is not configured yet.");
+          renderTasks();
+          return;
+        }
+
+        if (!userCode || isFetching) return;
+        isFetching = true;
+
+        // เริ่มการแอนิเมชันปุ่มรีเฟรชให้หมุน
+        const mobIcon = document.getElementById("mobile-refresh-icon");
+        const deskIcon = document.getElementById("desktop-refresh-icon");
+        if (mobIcon) mobIcon.classList.add("spinning");
+        if (deskIcon) deskIcon.classList.add("spinning");
+
+        const { data, error } = await supabaseClient
+          .from("tasks")
+          .select("*")
+          .eq("user_code", userCode);
+
+        // หน่วงเวลาเล็กน้อยเพื่อให้แอนิเมชันการสปินมองเห็นได้ลื่นตา
+        setTimeout(() => {
+          if (mobIcon) mobIcon.classList.remove("spinning");
+          if (deskIcon) deskIcon.classList.remove("spinning");
+          isFetching = false;
+        }, 600);
+
+        if (error) {
+          console.error("Error loading tasks:", error);
+          showAlert("เกิดข้อผิดพลาดในการโหลดงาน โปรดลองใหม่อีกครั้ง");
+          return;
+        }
+
+        if (data) {
+          const taskWithFullname = data.find(
+            (t) =>
+              t.user_fullname &&
+              t.user_fullname.trim() !== "" &&
+              t.user_fullname !== t.user_code
+          );
+          if (
+            taskWithFullname &&
+            taskWithFullname.user_fullname !== userFullname
+          ) {
+            userFullname = taskWithFullname.user_fullname;
+            localStorage.setItem("dashboard_user_fullname", userFullname);
+            document.getElementById("display-user-fullname").innerText =
+              userFullname;
+            document.getElementById("task-list-user-fullname").innerText =
+              userFullname;
+          }
+
+          tasks = data.map((t) => ({
+            id: t.id,
+            name: t.name,
+            desc: t.description,
+            startDate: t.start_date,
+            startTime: t.start_time,
+            endDate: t.end_date,
+            endTime: t.end_time,
+            useTimer: t.use_timer,
+            alertDays: t.alert_days,
+            targetTime: t.target_time,
+            pinned: t.pinned,
+          }));
+          renderTasks();
+          updateAutocomplete();
+          updateCalendarVisuals();
+        }
+      }
+
+      // ฟังก์ชัน Manual Refresh ด้วยตัวบุคคล
+      function manualRefresh() {
+        loadTasksFromDB(true);
+      }
+
+      // --- Supabase Realtime Subscription Setup ---
+      function subscribeToRealtime() {
+        if (!supabaseClient || !userCode) return;
+
+        if (realtimeChannel) {
+          supabaseClient.removeChannel(realtimeChannel);
+        }
+
+        // สร้าง Channel ตรวจฟังเหตุการณ์ Database Change เฉพาะงานที่ใช้รหัสบอร์ดนี้
+        realtimeChannel = supabaseClient
+          .channel("tasks-realtime-changes")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "tasks",
+              filter: `user_code=eq.${userCode}`,
+            },
+            (payload) => {
+              // เมื่อตรวจพบการอัปเดตงานบนคลาวด์ ให้ดึงข้อมูลมาวาดใหม่ทันที
+              loadTasksFromDB();
+            }
+          )
+          .subscribe();
+      }
+
+      // Fallback Polling: ดึงข้อมูลอัตโนมัติทุกๆ 15 วินาที ป้องกันข้อมูลค้างคา
+      setInterval(() => {
+        if (userCode) {
+          loadTasksFromDB();
+        }
+      }, 15000);
+
+      // --- Filter System ---
+      function setFilter(mode) {
+        currentFilter = mode;
+        document
+          .getElementById("btn-filter-upcoming")
+          .classList.toggle("active", mode === "upcoming");
+        document
+          .getElementById("btn-filter-all")
+          .classList.toggle("active", mode === "all");
+        renderTasks();
+      }
+
+      async function togglePin(id) {
+        if (!supabaseClient || !userCode) return;
+
+        const taskIndex = tasks.findIndex((task) => task.id === id);
+        if (taskIndex !== -1) {
+          const newPinnedStatus = !tasks[taskIndex].pinned;
+          tasks[taskIndex].pinned = newPinnedStatus; // Optimistic Update
+          renderTasks();
+
+          const { error } = await supabaseClient
+            .from("tasks")
+            .update({ pinned: newPinnedStatus })
+            .eq("id", id)
+            .eq("user_code", userCode);
+
+          if (error) console.error("Error updating pin:", error);
+        }
+      }
+
+      // --- Delete Confirmation System ---
+      function showConfirmDelete(id) {
+        document.getElementById("delete-task-id").value = id;
+        document.getElementById("confirm-modal").style.display = "flex";
+      }
+
+      function closeConfirmModal() {
+        document.getElementById("confirm-modal").style.display = "none";
+        document.getElementById("delete-task-id").value = "";
+      }
+
+      function executeDelete() {
+        const id = parseInt(document.getElementById("delete-task-id").value);
+        if (id) {
+          deleteTask(id);
+        }
+        closeConfirmModal();
+      }
+
+      async function deleteTask(id) {
+        if (!supabaseClient || !userCode) return;
+
+        tasks = tasks.filter((task) => task.id !== id);
+        renderTasks();
+        updateCalendarVisuals();
+
+        const { error } = await supabaseClient
+          .from("tasks")
+          .delete()
+          .eq("id", id)
+          .eq("user_code", userCode);
+
+        if (error) console.error("Error deleting task:", error);
+      }
+
+      // --- 3. Holiday Data ---
+      async function fetchHolidays() {
+        const statusText = document.getElementById("holiday-status");
+        const storedHolidays = localStorage.getItem("dashboard_holidays");
+        if (storedHolidays) {
+          try {
+            const parsedHolidays = JSON.parse(storedHolidays);
+            holidayMap = new Map(parsedHolidays);
+            statusText.innerText = "โหลดข้อมูลวันหยุดจาก LocalStorage แล้ว ✓";
+            updateCalendarVisuals();
+          } catch (e) {
+            console.error("Error parsing holidays from local storage", e);
+          }
+        }
+
+        try {
+          const currentYear = new Date().getFullYear();
+          const apiUrl = `https://calendarific.com/api/v2/holidays?api_key=H3r6FFXriINnzsnIHAfkjOagpJzw5hOR&country=TH&year=${currentYear}`;
+
+          const response = await fetch(apiUrl);
+          if (response.ok) {
+            const data = await response.json();
+            let newHolidayMap = new Map();
+
+            if (data.response && data.response.holidays) {
+              const events = data.response.holidays;
+              events.forEach((item) => {
+                if (item.date && item.date.iso) {
+                  const formatted = item.date.iso.substring(0, 10);
+                  newHolidayMap.set(formatted, item.name || "วันหยุด");
+                }
+              });
+              holidayMap = newHolidayMap;
+              localStorage.setItem(
+                "dashboard_holidays",
+                JSON.stringify(Array.from(holidayMap.entries()))
+              );
+              statusText.innerText = "อัปเดตข้อมูลวันหยุดล่าสุดสำเร็จ ✓";
+              updateCalendarVisuals();
+            }
+          }
+        } catch (error) {
+          console.warn(
+            "Holiday API Fetch failed, falling back to LocalStorage:",
+            error
+          );
+          if (!storedHolidays) {
+            statusText.innerText = "โหมดออฟไลน์ (ไม่พบข้อมูลวันหยุดในระบบ)";
+          }
+        }
+      }
+
+      // --- 4. Calendar Generation ---
+      function generateCalendars() {
+        const container = document.getElementById("calendar-container");
+        container.innerHTML = "";
+
+        const today = new Date();
+        const todayString = `${today.getFullYear()}-${String(
+          today.getMonth() + 1
+        ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+        for (let i = 0; i < 6; i++) {
+          const targetMonth = new Date(
+            today.getFullYear(),
+            today.getMonth() + i,
+            1
+          );
+          const year = targetMonth.getFullYear();
+          const month = targetMonth.getMonth();
+
+          const wrapper = document.createElement("div");
+          wrapper.className = "month-wrapper";
+
+          const title = document.createElement("div");
+          title.className = "month-title";
+          title.innerText = `${monthNames[month]} ${year}`;
+          wrapper.appendChild(title);
+
+          const grid = document.createElement("div");
+          grid.className = "calendar-grid";
+
+          daysOfWeek.forEach((day, index) => {
+            const header = document.createElement("div");
+            header.className = "day-header";
+            if (index === 0) header.classList.add("is-sunday");
+            if (index === 6) header.classList.add("is-saturday");
+            header.innerText = day.charAt(0);
+            grid.appendChild(header);
+          });
+
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const startDayIndex = new Date(year, month, 1).getDay();
+
+          for (let j = 0; j < startDayIndex; j++) {
+            const emptyCell = document.createElement("div");
+            grid.appendChild(emptyCell);
+          }
+
+          for (let day = 1; day <= daysInMonth; day++) {
+            const cell = document.createElement("div");
+            cell.className = "day-cell";
+
+            const currentDayOfWeek = new Date(year, month, day).getDay();
+            if (currentDayOfWeek === 0) cell.classList.add("is-sunday");
+            if (currentDayOfWeek === 6) cell.classList.add("is-saturday");
+
+            const dateString = `${year}-${String(month + 1).padStart(
+              2,
+              "0"
+            )}-${String(day).padStart(2, "0")}`;
+            cell.setAttribute("data-date", dateString);
+
+            let innerHTML = `<span class="day-number">${day}</span>`;
+            innerHTML += `<div class="event-dot">&bull;</div>`;
+            cell.innerHTML = innerHTML;
+
+            if (dateString === todayString) {
+              cell.classList.add("is-today");
+            }
+
+            cell.addEventListener("dblclick", () => openModal(dateString));
+            grid.appendChild(cell);
+          }
+
+          wrapper.appendChild(grid);
+          container.appendChild(wrapper);
+        }
+        updateCalendarVisuals();
+      }
+
+      // --- 5. Update Visuals on Calendar ---
+      function updateCalendarVisuals() {
+        const cells = document.querySelectorAll(".day-cell");
+
+        cells.forEach((cell) => {
+          const cellDate = cell.getAttribute("data-date");
+          if (!cellDate) return;
+
+          let tooltipParts = [];
+
+          if (holidayMap.has(cellDate)) {
+            cell.classList.add("is-holiday");
+            tooltipParts.push("⭐ วันหยุด: " + holidayMap.get(cellDate));
+          } else {
+            cell.classList.remove("is-holiday");
+          }
+
+          const tasksOnThisDay = tasks.filter((t) => {
+            const s = t.startDate || t.date;
+            const e = t.endDate || t.date;
+            return cellDate >= s && cellDate <= e;
+          });
+
+          if (tasksOnThisDay.length > 0) {
+            cell.classList.add("has-event");
+            const taskDetails = tasksOnThisDay.map((t) => {
+              let timeStr = "";
+              if (t.startTime || t.endTime) {
+                timeStr = ` (${t.startTime || "00:00"} ถึง ${
+                  t.endTime || "23:59"
+                })`;
+              }
+              return `- ${t.name}${timeStr}`;
+            });
+            tooltipParts.push("📝 กิจกรรม/งาน:\n" + taskDetails.join("\n"));
+          } else {
+            cell.classList.remove("has-event");
+          }
+
+          if (tooltipParts.length > 0) {
+            cell.title = tooltipParts.join("\n\n");
+          } else {
+            cell.title = "";
+          }
+        });
+      }
+
+      // --- 6. Modal Logic ---
+      const modal = document.getElementById("task-modal");
+      const alertModal = document.getElementById("alert-modal");
+      const confirmModal = document.getElementById("confirm-modal");
+      const profileModal = document.getElementById("profile-modal");
+      const taskNameInput = document.getElementById("task-name");
+
+      function toggleAlertInput() {
+        const isTimerChecked = document.getElementById("task-timer").checked;
+        document.getElementById("alert-settings").style.display = isTimerChecked
+          ? "flex"
+          : "none";
+      }
+
+      function openModal(dateString) {
+        if (!dateString || typeof dateString !== "string") {
+          const today = new Date();
+          dateString = `${today.getFullYear()}-${String(
+            today.getMonth() + 1
+          ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        }
+
+        document.getElementById("editing-task-id").value = "";
+        document.getElementById("modal-title").innerText = "เพิ่มงานใหม่";
+        document.getElementById("start-date").value = dateString;
+        document.getElementById("start-time").value = "08:00";
+        document.getElementById("end-date").value = dateString;
+        document.getElementById("end-time").value = "17:00";
+        taskNameInput.value = "";
+        document.getElementById("task-desc").value = "";
+        document.getElementById("task-timer").checked = true;
+        document.getElementById("alert-days").value = "1";
+        toggleAlertInput();
+
+        modal.style.display = "flex";
+        setTimeout(() => taskNameInput.focus(), 100);
+      }
+
+      function editTask(id) {
+        const task = tasks.find((t) => t.id === id);
+        if (!task) return;
+
+        document.getElementById("editing-task-id").value = task.id;
+        document.getElementById("modal-title").innerText = "แก้ไขงาน";
+        document.getElementById("task-name").value = task.name;
+        document.getElementById("task-desc").value = task.desc || "";
+        document.getElementById("start-date").value =
+          task.startDate || task.date;
+        document.getElementById("start-time").value = task.startTime || "";
+        document.getElementById("end-date").value = task.endDate || task.date;
+        document.getElementById("end-time").value = task.endTime || "";
+        document.getElementById("task-timer").checked = task.useTimer;
+        document.getElementById("alert-days").value =
+          task.alertDays !== undefined ? task.alertDays : 1;
+
+        toggleAlertInput();
+        modal.style.display = "flex";
+        setTimeout(() => taskNameInput.focus(), 100);
+      }
+
+      function closeModal() {
+        modal.style.display = "none";
+      }
+
+      /* --- Profile Name Editing Logic --- */
+      function openProfileModal() {
+        document.getElementById("edit-display-fullname").value = userFullname;
+        profileModal.style.display = "flex";
+        setTimeout(
+          () => document.getElementById("edit-display-fullname").focus(),
+          100
+        );
+      }
+
+      function closeProfileModal() {
+        profileModal.style.display = "none";
+      }
+
+      async function saveNewProfileName() {
+        const newName = document
+          .getElementById("edit-display-fullname")
+          .value.trim();
+        if (!newName) {
+          showAlert("กรุณาระบุชื่อผู้ใช้งาน หรือ ชื่อกลุ่มของคุณ");
+          return;
+        }
+
+        userFullname = newName;
+        localStorage.setItem("dashboard_user_fullname", userFullname);
+
+        document.getElementById("display-user-fullname").innerText =
+          userFullname;
+        document.getElementById("task-list-user-fullname").innerText =
+          userFullname;
+
+        closeProfileModal();
+        updateCalendarVisuals();
+
+        if (supabaseClient && userCode) {
+          const { error } = await supabaseClient
+            .from("tasks")
+            .update({ user_fullname: userFullname })
+            .eq("user_code", userCode);
+
+          if (error)
+            console.error("Error updating user_fullname in DB:", error);
+        }
+      }
+
+      window.onclick = function (event) {
+        if (event.target == modal) closeModal();
+        if (event.target == confirmModal) closeConfirmModal();
+        if (event.target == alertModal) closeAlertModal();
+        if (event.target == profileModal) closeProfileModal();
+      };
+
+      // --- 7. Task Saving & Rendering ---
+      async function saveTask() {
+        if (!supabaseClient || !userCode) {
+          showAlert("ระบบเชื่อมต่อหรือรหัสผู้ใช้งานไม่สมบูรณ์");
+          return;
+        }
+
+        const name = taskNameInput.value.trim();
+        const desc = document.getElementById("task-desc").value.trim();
+        const startDate = document.getElementById("start-date").value;
+        const startTime = document.getElementById("start-time").value;
+        const endDate = document.getElementById("end-date").value;
+        const endTime = document.getElementById("end-time").value;
+        const useTimer = document.getElementById("task-timer").checked;
+        const alertDays =
+          parseInt(document.getElementById("alert-days").value) || 0;
+        const editingId = document.getElementById("editing-task-id").value;
+
+        if (!name) {
+          showAlert("กรุณาระบุชื่อกิจกรรม / งาน");
+          return;
+        }
+
+        if (!startDate || !endDate) {
+          showAlert("กรุณาระบุวันที่ให้ครบถ้วน");
+          return;
+        }
+
+        if (
+          endDate < startDate ||
+          (endDate === startDate && endTime < startTime)
+        ) {
+          showAlert("วันที่/เวลาสิ้นสุดต้องอยู่หลังจากเวลาเริ่มต้น");
+          return;
+        }
+
+        const targetTimeStr = `${endDate}T${endTime || "23:59"}:00`;
+        const targetTime = new Date(targetTimeStr).getTime();
+
+        const taskDataDB = {
+          name: name,
+          description: desc,
+          start_date: startDate,
+          start_time: startTime,
+          end_date: endDate,
+          end_time: endTime,
+          use_timer: useTimer,
+          alert_days: alertDays,
+          target_time: targetTime,
+          user_code: userCode,
+          user_fullname: userFullname,
+        };
+
+        if (editingId) {
+          const idNum = parseInt(editingId);
+          const taskIndex = tasks.findIndex((t) => t.id === idNum);
+          if (taskIndex > -1) {
+            tasks[taskIndex] = {
+              ...tasks[taskIndex],
+              name,
+              desc,
+              startDate,
+              startTime,
+              endDate,
+              endTime,
+              useTimer,
+              alertDays,
+              targetTime,
+            };
+          }
+
+          renderTasks();
+          updateCalendarVisuals();
+          closeModal();
+
+          const { error } = await supabaseClient
+            .from("tasks")
+            .update(taskDataDB)
+            .eq("id", idNum)
+            .eq("user_code", userCode);
+
+          if (error) console.error("Error updating task:", error);
+        } else {
+          const idNum = Date.now();
+          taskDataDB.id = idNum;
+          taskDataDB.pinned = false;
+
+          const task = {
+            id: idNum,
+            name,
+            desc,
+            startDate,
+            startTime,
+            endDate,
+            endTime,
+            useTimer,
+            alertDays,
+            targetTime,
+            pinned: false,
+          };
+          tasks.push(task);
+
+          renderTasks();
+          updateCalendarVisuals();
+          closeModal();
+
+          const { error } = await supabaseClient
+            .from("tasks")
+            .insert([taskDataDB]);
+          if (error) console.error("Error inserting task:", error);
+        }
+
+        updateAutocomplete();
+      }
+
+      function renderTasks() {
+        const list = document.getElementById("task-list");
+        list.innerHTML = "";
+
+        if (!supabaseClient) {
+          list.innerHTML =
+            '<p style="color: #e53e3e; text-align: center; margin-top: 40px; font-weight: 600;">⚠️ กรุณาใส่ Supabase Anon Key ตัวเต็มของคุณในซอร์สโค้ด (ตรงตัวแปร supabaseKey) เพื่อเชื่อมต่อฐานข้อมูล</p>';
+          return;
+        }
+
+        let filteredTasks = tasks;
+        if (currentFilter === "upcoming") {
+          const today = new Date();
+          const todayString = `${today.getFullYear()}-${String(
+            today.getMonth() + 1
+          ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+          filteredTasks = tasks.filter((task) => {
+            const endDate = task.endDate || task.date;
+            return endDate >= todayString;
+          });
+        }
+
+        if (filteredTasks.length === 0) {
+          const emptyMsg =
+            currentFilter === "upcoming"
+              ? "ไม่มีงานที่ต้องทำในเร็วๆ นี้"
+              : "ยังไม่มีงานที่บันทึกไว้";
+          list.innerHTML = `<p style="color: #a0aec0; text-align: center; margin-top: 40px;">${emptyMsg}</p>`;
+          return;
+        }
+
+        filteredTasks.sort((a, b) => {
+          const aPinned = a.pinned ? 1 : 0;
+          const bPinned = b.pinned ? 1 : 0;
+          if (aPinned !== bPinned) return bPinned - aPinned;
+          return a.targetTime - b.targetTime;
+        });
+
+        filteredTasks.forEach((task) => {
+          const card = document.createElement("div");
+          card.className = "task-card";
+
+          const isExpired = new Date().getTime() > task.targetTime;
+          if (isExpired) card.classList.add("expired");
+
+          const sDate = task.startDate || task.date;
+          const eDate = task.endDate || task.date;
+          const sTime = task.startTime ? ` ${task.startTime} น.` : "";
+          const eTime = task.endTime ? ` ${task.endTime} น.` : "";
+
+          let dateDisplayStr = "";
+          if (sDate === eDate) {
+            dateDisplayStr = `วันที่ ${sDate} &bull; เวลา${sTime} - ${eTime}`;
+          } else {
+            dateDisplayStr = `เริ่ม: ${sDate}${sTime} &nbsp;&rarr;&nbsp; สิ้นสุด: ${eDate}${eTime}`;
+          }
+
+          const hasDescIcon = task.desc
+            ? `<svg style="margin-left:6px; vertical-align:text-bottom; color:#718096;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+            : "";
+
+          if (task.desc) {
+            card.setAttribute(
+              "ondblclick",
+              "this.classList.toggle('expanded')"
+            );
+            card.title = "ดับเบิลคลิกเพื่อดู/ซ่อนรายละเอียดกิจกรรม";
+            card.style.cursor = "pointer";
+          }
+
+          let html = `
+          <div class="task-header">
+            <div class="task-title">${task.name}${hasDescIcon}</div>
+            <div class="task-actions">
+              <button class="btn-action btn-edit" onclick="editTask(${
+                task.id
+              })" title="แก้ไขงาน">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+              <button class="btn-action btn-pin ${
+                task.pinned ? "active" : ""
+              }" onclick="togglePin(${task.id})" title="${
+            task.pinned ? "เลิกปักหมุด" : "ปักหมุด"
+          }">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="${
+                  task.pinned ? "currentColor" : "none"
+                }" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+              </button>
+              <button class="btn-action btn-delete" onclick="showConfirmDelete(${
+                task.id
+              })" title="ลบงานนี้">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              </button>
+            </div>
+          </div>
+          <div class="task-date">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>${dateDisplayStr}</span>
+          </div>
+        `;
+
+          if (task.useTimer) {
+            const timerClass = isExpired
+              ? "countdown expired-timer"
+              : "countdown";
+            const alertDaysAttr =
+              task.alertDays !== undefined ? task.alertDays : 1;
+            html += `
+            <div class="${timerClass}" data-target="${task.targetTime}" data-alert-days="${alertDaysAttr}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span class="timer-text">กำลังคำนวณเวลา...</span>
+            </div>
+          `;
+          }
+
+          if (task.desc) {
+            let formattedDesc = task.desc
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+            const urlRegex =
+              /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
+            formattedDesc = formattedDesc.replace(urlRegex, function (url) {
+              return `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">${url}</a>`;
+            });
+            formattedDesc = formattedDesc.replace(/\n/g, "<br>");
+            html += `<div class="task-description">${formattedDesc}</div>`;
+          }
+
+          card.innerHTML = html;
+          list.appendChild(card);
+        });
+
+        updateTimers();
+      }
+
+      // --- 8. Real-time Countdown Timer ---
+      function updateTimers() {
+        const timers = document.querySelectorAll(".countdown");
+        const now = new Date().getTime();
+
+        timers.forEach((timer) => {
+          const target = parseInt(timer.getAttribute("data-target"));
+          const alertDays =
+            parseInt(timer.getAttribute("data-alert-days")) || 0;
+          const distance = target - now;
+          const textSpan = timer.querySelector(".timer-text");
+          const card = timer.closest(".task-card");
+
+          if (distance < 0) {
+            if (textSpan) textSpan.innerText = "หมดเวลา / เลยกำหนดแล้ว";
+            timer.classList.add("expired-timer");
+
+            if (card) {
+              if (!card.classList.contains("expired"))
+                card.classList.add("expired");
+              if (card.classList.contains("blink-warning"))
+                card.classList.remove("blink-warning");
+            }
+            return;
+          }
+
+          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const hours = Math.floor(
+            (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          );
+          const minutes = Math.floor(
+            (distance % (1000 * 60 * 60)) / (1000 * 60)
+          );
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+          if (alertDays > 0) {
+            if (days <= alertDays) {
+              if (card && !card.classList.contains("blink-warning"))
+                card.classList.add("blink-warning");
+            } else {
+              if (card && card.classList.contains("blink-warning"))
+                card.classList.remove("blink-warning");
+            }
+          }
+
+          const hStr = String(hours).padStart(2, "0");
+          const mStr = String(minutes).padStart(2, "0");
+          const sStr = String(seconds).padStart(2, "0");
+
+          if (textSpan)
+            textSpan.innerText = `${days} วัน ${hStr} ชม. ${mStr} นาที ${sStr} วินาที`;
+        });
+      }
+
+      // --- 9. Keyboard Shortcut Listener (Ctrl+K or Alt+P to Edit Profile) ---
+      window.addEventListener("keydown", (e) => {
+        if (
+          (e.ctrlKey && e.key.toLowerCase() === "k") ||
+          (e.altKey && e.key.toLowerCase() === "p")
+        ) {
+          e.preventDefault();
+          if (userCode) {
+            openProfileModal();
+          }
+        }
+      });
+
+      setInterval(updateTimers, 1000);
+
+      // --- Initialization ---
+      generateCalendars();
+      checkStoredAccessCode();
+      fetchHolidays();
+    </script>
+  </body>
+</html>
