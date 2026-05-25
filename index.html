@@ -8,111 +8,147 @@
     <!-- เพิ่ม Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
-      /* ---- Global Layout ---- */
+      /* ---- Animations & Transitions ---- */
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .animate-fade-in {
+        animation: fadeIn 0.8s ease-out forwards;
+      }
+
+      /* ---- Global Reset & Variables ---- */
+      :root {
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --secondary: #f43f5e;
+        --accent: #10b981;
+        --warning: #f59e0b;
+        --bg-main: #f8fafc;
+        --bg-card: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --radius: 12px;
+        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Inter', sans-serif;
         display: flex;
         height: 100vh;
-        overflow: hidden; /* Prevent body scrolling */
-        background-color: #f4f7f6;
-        color: #333;
+        width: 100vw;
+        overflow: hidden;
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        animation: fadeIn 0.6s ease-out;
       }
 
       #left-pane {
         flex: 3;
-        padding: 15px;
+        padding: 24px;
         display: flex;
         flex-direction: column;
-        border-right: 3px solid #d1d5db;
+        border-right: 1px solid var(--border-color);
         background-color: #ffffff;
         height: 100%;
-        box-sizing: border-box;
+        min-width: 0;
+        transition: all 0.3s ease;
       }
 
       #right-pane {
         flex: 1;
-        padding: 20px;
+        padding: 24px;
         overflow-y: auto;
-        background-color: #eaeff2;
-        min-width: 380px;
+        background-color: #f1f5f9;
+        min-width: 420px;
         height: 100%;
-        box-sizing: border-box;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-color) transparent;
+        transition: all 0.3s ease;
       }
 
-      /* จัดกลุ่ม Task List ให้อยู่กึ่งกลางหน้าจออย่างสมส่วน */
-      .right-pane-container {
-        max-width: 480px;
-        margin: 0 auto;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-      }
+      #right-pane::-webkit-scrollbar { width: 6px; }
+      #right-pane::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; }
+
+      .right-pane-container { max-width: 500px; margin: 0 auto; width: 100%; }
 
       .header-area {
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 15px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        flex-shrink: 0;
       }
 
       .header-area h1 {
         margin: 0;
-        font-size: 1.6rem;
-        color: #2c3e50;
+        font-size: 1.8rem;
+        font-weight: 800;
+        background: linear-gradient(to right, var(--primary), #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.025em;
       }
 
-      .header-area p {
-        margin: 0;
-        font-size: 0.9rem;
-        color: #7f8c8d;
-      }
-
-      /* ---- User Profile Area (Access Code Profile) ---- */
+      /* ---- User Profile Area ---- */
       .user-profile {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 0.85rem;
-        background: #f7fafc;
-        padding: 6px 12px;
-        border-radius: 20px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
+        gap: 12px;
+        font-size: 0.9rem;
+        background: #ffffff;
+        padding: 8px 16px;
+        border-radius: 100px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
       }
       .user-profile:hover {
-        background: #edf2f7;
-        border-color: #cbd5e0;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary);
       }
-      .user-email {
-        font-weight: 600;
-        color: #2b6cb0;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
+
       .user-fullname-display {
-        font-weight: 700;
-        color: #2d3748;
-        max-width: 180px;
+        font-weight: 600;
+        color: var(--text-main);
+        max-width: 150px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
       .btn-logout {
-        background: #718096;
-        color: white;
+        background: #f1f5f9;
+        color: var(--text-muted);
         border: none;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
+        padding: 6px 12px;
+        border-radius: 100px;
+        font-size: 0.8rem;
+        font-weight: 600;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: all 0.2s;
       }
-      .btn-logout:hover {
-        background: #4a5568;
-      }
+      .btn-logout:hover { background: var(--secondary); color: white; }
 
       /* ---- 6-Month Grid Layout ---- */
       #calendar-container {
@@ -120,27 +156,26 @@
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         grid-template-rows: repeat(2, 1fr);
-        gap: 12px;
+        gap: 16px;
         min-height: 0;
       }
 
-      /* ---- Individual Month Styling ---- */
       .month-wrapper {
         display: flex;
         flex-direction: column;
-        background: #fdfcfb;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 12px;
+        min-height: 0;
       }
 
       .month-title {
         font-size: 1.1rem;
-        font-weight: 600;
-        text-align: center;
-        margin-bottom: 8px;
-        color: #4a5568;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: var(--text-main);
+        flex-shrink: 0;
       }
 
       .calendar-grid {
@@ -148,551 +183,476 @@
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         grid-auto-rows: 1fr;
-        gap: 2px;
+        gap: 4px;
+        min-height: 0;
       }
 
       .day-header {
-        font-size: 0.75rem;
-        font-weight: bold;
+        font-size: 0.7rem;
+        font-weight: 700;
         text-align: center;
-        color: #a0aec0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding-bottom: 4px;
       }
 
       .day-cell {
-        border-radius: 4px;
-        border: 1px solid transparent;
-        background: #fff;
+        border-radius: 8px;
+        background: #f8fafc;
         cursor: pointer;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         position: relative;
         user-select: none;
         font-size: 0.85rem;
+        border: 1px solid transparent;
       }
 
       .day-cell:hover {
-        border-color: #cbd5e0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        background: #ffffff;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         z-index: 10;
+        border-color: var(--primary);
       }
 
-      .day-number {
-        font-weight: 500;
-        color: #4a5568;
-        z-index: 2;
-      }
+      .day-number { font-weight: 600; color: var(--text-main); }
+      .day-header.is-sunday, .day-cell.is-sunday .day-number { color: var(--secondary); }
+      .day-header.is-saturday, .day-cell.is-saturday .day-number { color: var(--primary); }
 
-      /* --- Weekend Styling --- */
-      .day-header.is-sunday {
-        color: #e53e3e;
-      }
-      .day-header.is-saturday {
-        color: #3182ce;
-      }
-
-      .day-cell.is-sunday .day-number {
-        color: #e53e3e;
-      }
-      .day-cell.is-saturday .day-number {
-        color: #3182ce;
-      }
-
-      /* --- Day Status Indicators --- */
       .day-cell.is-today {
-        border: 2px solid #3182ce;
-        font-weight: bold;
+        background: var(--primary) !important;
+        border-color: var(--primary);
       }
+      .day-cell.is-today .day-number { color: white !important; }
 
-      .day-cell.is-holiday {
-        background: #fff0f5;
-        color: #b76e79;
-      }
-      .day-cell.is-holiday .day-number {
-        color: #b76e79 !important;
-      }
+      .day-cell.is-holiday { background: #fff1f2; }
+      .day-cell.is-holiday .day-number { color: var(--secondary) !important; }
 
-      .day-cell.has-event {
-        background: #ebf8ff;
-      }
+      .day-cell.has-event { background: #eef2ff; border: 1px solid #c7d2fe; }
+      .day-cell.is-today.has-event { background: var(--primary) !important; }
 
       .event-dot {
+        width: 6px; height: 6px;
+        background: var(--primary);
+        border-radius: 50%;
+        margin-top: 4px;
         display: none;
-        color: #3182ce;
-        font-size: 1.2rem;
-        line-linecap: 0.5;
-        margin-top: 2px;
       }
-      .day-cell.has-event .event-dot {
-        display: block;
-      }
+      .day-cell.has-event .event-dot { display: block; }
+      .day-cell.is-today .event-dot { background: white; }
 
-      /* ---- Right Pane Cards UI/UX ---- */
-      #right-pane h2 {
-        margin-top: 0;
-        font-size: 1.3rem;
-        color: #2c3e50;
-        border-bottom: 2px solid #cbd5e0;
-        padding-bottom: 8px;
-        margin-bottom: 15px;
-        line-height: 1.4;
+      /* ---- Tooltip Styling ---- */
+      #custom-tooltip {
+        position: fixed;
+        display: none;
+        background: rgba(15, 23, 42, 0.95);
+        color: white;
+        padding: 12px 16px;
+        border-radius: var(--radius);
+        font-size: 0.85rem;
+        z-index: 9999;
+        pointer-events: none;
+        box-shadow: var(--shadow-lg);
+        max-width: 250px;
+        line-height: 1.5;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
 
       /* ---- Filter Toggle ---- */
       .filter-container {
         display: flex;
         background: #e2e8f0;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 4px;
         margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
       }
+      
       .filter-btn {
         flex: 1;
-        padding: 8px 0;
+        padding: 10px 0;
         border: none;
         background: transparent;
-        border-radius: 6px;
         cursor: pointer;
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: #718096;
-        transition: all 0.2s ease;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        position: relative;
+        z-index: 2;
+        transition: color 0.3s;
       }
-      .filter-btn.active {
-        background: #fff;
-        color: #2b6cb0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      
+      .filter-btn.active { color: var(--primary); }
+      
+      .filter-active-bg {
+        position: absolute;
+        top: 4px;
+        bottom: 4px;
+        left: 4px;
+        width: calc(50% - 4px);
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+      }
+      
+      .filter-container.all-active .filter-active-bg {
+        transform: translateX(100%);
       }
 
+      /* ---- Task Card Overhaul ---- */
       .task-card {
-        background: #fff;
-        border-left: 5px solid #3182ce;
-        padding: 16px;
-        margin-bottom: 16px;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-        animation: fadeIn 0.3s ease;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background: var(--bg-card);
+        padding: 18px;
+        margin-bottom: 14px;
+        border-radius: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--border-color);
+        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 0.5s ease-out backwards;
       }
 
       .task-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-4px) scale(1.01);
+        box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        border-color: var(--card-accent, var(--primary));
       }
 
-      .task-card.expired {
-        border-left-color: #a0aec0;
-        opacity: 0.85;
+      .task-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; bottom: 0;
+        width: 7px;
+        background: var(--card-accent, var(--primary));
+        opacity: 1;
+        transition: background 0.3s;
       }
+
+      .task-card.expired { opacity: 0.7; filter: grayscale(0.5); }
+      .task-card.expired::before { background: var(--text-muted) !important; }
 
       .task-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
+        gap: 12px;
       }
 
       .task-title {
-        font-size: 1.1rem;
-        font-weight: 700;
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1.3;
         margin: 0;
-        color: #2b6cb0;
-        line-height: 1.4;
-        border: 1px solid #bee3f8;
-        background-color: #ebf8ff;
-        padding: 8px 12px;
-        border-radius: 6px;
-        flex-grow: 1;
+        transition: color 0.3s;
+        letter-spacing: -0.01em;
       }
+      .task-card:hover .task-title { color: var(--card-accent, var(--primary)); }
 
       .task-actions {
         display: flex;
-        gap: 5px;
-        align-items: flex-start;
-        flex-shrink: 0;
-        margin-left: 10px;
+        gap: 4px;
+        background: rgba(241, 245, 249, 0.8);
+        padding: 4px;
+        border-radius: 12px;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
       }
 
-      .btn-action {
-        background: transparent;
-        border: none;
-        color: #a0aec0;
-        cursor: pointer;
-        padding: 6px;
-        border-radius: 6px;
-        transition: all 0.2s ease;
+      .task-body { margin-top: 8px; }
+      .task-footer { margin-top: 10px; }
+
+      .task-date-info {
         display: flex;
         align-items: center;
-        justify-content: center;
-      }
-
-      .btn-action:hover {
-        background: #edf2f7;
-        color: #4a5568;
-      }
-
-      .btn-edit:hover {
-        background: #e2e8f0;
-        color: #3182ce;
-      }
-
-      .btn-delete:hover {
-        background: #fed7d7;
-        color: #e53e3e;
-      }
-
-      .btn-pin.active {
-        color: #d69e2e;
-      }
-
-      .btn-pin.active:hover {
-        background: #fef08a;
-      }
-
-      .task-date {
+        gap: 8px;
         font-size: 0.85rem;
-        color: #4a5568;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: #f7fafc;
-        padding: 8px 10px;
-        border-radius: 6px;
-        border: 1px solid #edf2f7;
-      }
-
-      .task-date svg {
-        color: #718096;
-        flex-shrink: 0;
-      }
-
-      .countdown {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        font-size: 0.9rem;
+        color: var(--text-muted);
         font-weight: 600;
-        color: #dd6b20;
-        background: #feebc8;
-        padding: 8px 12px;
-        border-radius: 6px;
+        letter-spacing: 0.01em;
+      }
+
+      .task-badge-container { display: flex; gap: 6px; margin-bottom: 8px; }
+      .task-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 100px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+      .badge-pinned { background: #fef3c7; color: #d97706; }
+      .badge-desc { background: #f1f5f9; color: var(--text-muted); padding: 4px 6px; }
+
+      .task-description {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease, margin 0.4s ease, padding 0.4s ease;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        font-weight: 500;
+      }
+
+      .task-card.expanded .task-description {
+        max-height: 1000px;
+        opacity: 1;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--border-color);
+      }
+
+      /* ---- Countdown & Timer Styles ---- */
+      .countdown {
         display: flex;
         align-items: center;
         gap: 8px;
+        padding: 10px 16px;
+        background: #ffffff;
+        color: var(--card-accent, #e11d48);
+        border-radius: 14px;
+        font-weight: 900;
+        font-size: 0.85rem;
         margin-top: 4px;
-        border: 1px solid #fbd38d;
-      }
-
-      .countdown svg {
-        flex-shrink: 0;
+        border: 2px solid var(--card-accent, #fecaca);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        letter-spacing: 0.02em;
       }
 
       .countdown.expired-timer {
-        color: #718096;
-        background: #edf2f7;
-        border-color: #e2e8f0;
+        background: #f1f5f9;
+        color: var(--text-muted);
+        border-color: var(--border-color);
+        opacity: 0.7;
+        font-weight: 700;
       }
 
-      /* ---- Blinking Alert Animation ---- */
-      @keyframes blinkWarning {
-        0% {
-          box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.4);
-          border-left-color: #e53e3e;
-        }
-        50% {
-          box-shadow: 0 0 0 8px rgba(229, 62, 62, 0);
-          border-left-color: #fc8181;
-        }
-        100% {
-          box-shadow: 0 0 0 0 rgba(229, 62, 62, 0);
-          border-left-color: #e53e3e;
-        }
+      @keyframes pulse-warning {
+        0% { border-color: var(--secondary); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); background-color: #ffffff; }
+        50% { border-color: var(--secondary); box-shadow: 0 0 25px 6px rgba(244, 63, 94, 0.3); background-color: #fff1f2; }
+        100% { border-color: var(--secondary); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); background-color: #ffffff; }
       }
-
       .task-card.blink-warning {
-        animation: blinkWarning 1.5s infinite;
+        animation: pulse-warning 1.2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        border-width: 2px;
+        border-style: solid;
+        z-index: 5;
       }
 
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      /* ---- Modal Styling ---- */
+      /* ---- Modals & Forms ---- */
       .modal-overlay {
         display: none;
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(2px);
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(12px);
         justify-content: center;
         align-items: center;
-        z-index: 1000;
+        z-index: 9000;
+        padding: 20px;
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      @keyframes modalZoom {
+        from { opacity: 0; transform: scale(0.95) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
       }
 
       .modal-content {
-        background: white;
-        padding: 25px;
-        border-radius: 10px;
-        width: 380px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 32px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        width: 100%;
+        max-width: 500px;
+        position: relative;
+        animation: modalZoom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       .modal-content h3 {
         margin-top: 0;
-        color: #2d3748;
+        margin-bottom: 24px;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
       }
 
       .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 20px;
       }
 
       .form-group label {
         display: block;
-        margin-bottom: 6px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: #4a5568;
+        margin-bottom: 8px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
 
-      .form-group input[type="text"],
-      .form-group input[type="date"],
-      .form-group input[type="time"],
-      .form-group input[type="number"] {
+      input[type="text"], 
+      input[type="date"], 
+      input[type="time"], 
+      input[type="number"], 
+      textarea {
         width: 100%;
-        padding: 10px;
-        box-sizing: border-box;
-        border: 1px solid #cbd5e0;
-        border-radius: 6px;
-        font-size: 1rem;
-      }
-
-      .form-group input[type="text"]:focus,
-      .form-group input[type="date"]:focus,
-      .form-group input[type="time"]:focus,
-      .form-group input[type="number"]:focus {
-        outline: none;
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
-      }
-
-      .form-group textarea {
-        width: 100%;
-        padding: 10px;
-        box-sizing: border-box;
-        border: 1px solid #cbd5e0;
-        border-radius: 6px;
-        font-size: 1rem;
-        font-family: inherit;
-        resize: vertical;
-      }
-
-      .form-group textarea:focus {
-        outline: none;
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
-      }
-
-      .task-description {
-        display: none;
-        margin-top: 12px;
-        padding: 12px;
         background: #f8fafc;
-        border-radius: 6px;
+        border: 2px solid #f1f5f9;
+        border-radius: 14px;
+        padding: 14px 18px;
         font-size: 0.95rem;
-        color: #4a5568;
-        border: 1px dashed #cbd5e0;
-        line-height: 1.5;
+        font-weight: 500;
+        color: var(--text-main);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        font-family: inherit;
       }
 
-      .task-description a {
-        color: #3182ce;
-        text-decoration: none;
+      input:focus, textarea:focus {
+        background: #ffffff;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        outline: none;
       }
 
-      .task-description a:hover {
-        text-decoration: underline;
-        color: #2b6cb0;
+      .date-time-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
       }
 
-      .task-card.expanded .task-description {
-        display: block;
-        animation: fadeIn 0.3s ease;
+      .date-time-row {
+        background: #f8fafc;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid #f1f5f9;
+        margin-bottom: 12px;
+      }
+
+      .date-time-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
 
       .form-actions {
-        text-align: right;
-        margin-top: 25px;
-      }
-
-      button {
-        padding: 9px 16px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.95rem;
-        font-weight: 500;
-        transition: background 0.2s;
-      }
-
-      .btn-cancel {
-        background: #e2e8f0;
-        color: #4a5568;
-        margin-right: 10px;
-      }
-      .btn-cancel:hover {
-        background: #cbd5e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 32px;
       }
 
       .btn-save {
-        background: #3182ce;
+        background: var(--primary);
         color: white;
+        font-weight: 700;
+        padding: 14px 28px;
+        border-radius: 16px;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
       }
-      .btn-save:hover {
-        background: #2b6cb0;
+
+      .btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); }
+
+      .btn-cancel {
+        background: #f1f5f9;
+        color: var(--text-muted);
+        font-weight: 700;
+        padding: 14px 24px;
+        border-radius: 16px;
+        border: none;
+        cursor: pointer;
       }
+      .btn-cancel:hover { background: #e2e8f0; color: var(--text-main); }
 
       .btn-delete-confirm {
-        background: #e53e3e;
+        background: var(--secondary);
         color: white;
+        font-weight: 700;
+        padding: 14px 28px;
+        border-radius: 16px;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(244, 63, 94, 0.3);
       }
-      .btn-delete-confirm:hover {
-        background: #c53030;
-      }
+      .btn-delete-confirm:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(244, 63, 94, 0.4); }
 
-      /* ---- Access Code Screen Layout ---- */
+      /* ---- Access Code Screen ---- */
       #access-screen {
         display: flex;
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         justify-content: center;
         align-items: center;
-        z-index: 2000;
-        box-sizing: border-box;
+        z-index: 8000;
         padding: 20px;
       }
 
       .access-card {
         background: white;
-        padding: 30px;
-        border-radius: 12px;
+        padding: 40px;
+        border-radius: 24px;
         width: 100%;
         max-width: 440px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        box-sizing: border-box;
-      }
-
-      .access-card h2 {
-        margin-top: 0;
-        margin-bottom: 10px;
-        color: #2c3e50;
+        box-shadow: var(--shadow-lg);
         text-align: center;
       }
 
-      .access-card p {
-        color: #718096;
-        font-size: 0.9rem;
-        margin-bottom: 25px;
-        text-align: center;
-        line-height: 1.4;
-      }
-
-      /* ---- Mobile Responsive & Floating Buttons ---- */
-      #mobile-add-btn {
-        display: none;
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        background: #3182ce;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        box-shadow: 0 4px 15px rgba(49, 130, 206, 0.4);
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
-        z-index: 100;
-        transition: transform 0.2s, background 0.2s;
-      }
-
-      #mobile-refresh-btn {
-        display: none;
-        position: fixed;
-        bottom: 30px;
-        right: 105px; /* 30px + 60px size + 15px gap */
-        background: #ffffff;
-        color: #3182ce;
-        border: 2px solid #e2e8f0;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
-        z-index: 100;
-        transition: transform 0.2s, background 0.2s;
-      }
-
-      #mobile-add-btn:active,
-      #mobile-refresh-btn:active {
-        transform: scale(0.95);
-      }
-
-      /* สปินแอนิเมชันสำหรับปุ่มรีเฟรช */
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-      .spinning {
-        animation: spin 0.8s linear infinite;
+      /* ---- Mobile & Responsiveness ---- */
+      @media (max-width: 1000px) {
+        #calendar-container { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
       }
 
       @media (max-width: 800px) {
-        #left-pane {
-          display: none;
-        }
-        #right-pane {
-          min-width: 100%;
-          padding: 15px;
-        }
-        #mobile-add-btn,
-        #mobile-refresh-btn {
-          display: flex;
-        }
-        .modal-content {
-          width: 90%;
-          max-width: 380px;
-          padding: 20px;
-        }
+        #left-pane { display: none; }
+        #right-pane { min-width: 100%; padding: 16px; }
+        #mobile-add-btn, #mobile-refresh-btn { display: flex; }
       }
+
+      #mobile-add-btn, #mobile-refresh-btn {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        width: 56px; height: 56px;
+        border-radius: 50%;
+        align-items: center; justify-content: center;
+        box-shadow: var(--shadow-lg);
+        border: none;
+        cursor: pointer;
+        z-index: 100;
+      }
+      #mobile-add-btn { right: 24px; background: var(--primary); color: white; }
+      #mobile-refresh-btn { right: 92px; background: white; color: var(--primary); border: 1px solid var(--border-color); }
     </style>
   </head>
   <body>
+    <!-- Custom Tooltip Container -->
+    <div id="custom-tooltip"></div>
+
     <!-- Screen สำหรับให้กรอกรหัสส่วนตัว (Access Code) และ ชื่อผู้ใช้งาน / กลุ่ม -->
     <div id="access-screen">
       <div class="access-card">
@@ -867,7 +827,8 @@
         </h2>
 
         <!-- ระบบ Toggle Filter -->
-        <div class="filter-container">
+        <div class="filter-container" id="filter-toggle-container">
+          <div class="filter-active-bg"></div>
           <button
             class="filter-btn active"
             id="btn-filter-upcoming"
@@ -1451,6 +1412,10 @@
       // --- Filter System ---
       function setFilter(mode) {
         currentFilter = mode;
+        const container = document.getElementById("filter-toggle-container");
+        if (container) {
+          container.classList.toggle("all-active", mode === "all");
+        }
         document
           .getElementById("btn-filter-upcoming")
           .classList.toggle("active", mode === "upcoming");
@@ -1566,6 +1531,36 @@
         }
       }
 
+      // --- Custom Tooltip System ---
+      const tooltip = document.getElementById("custom-tooltip");
+      function showTooltip(e, content) {
+        if (!content) return;
+        tooltip.innerHTML = content;
+        tooltip.style.display = "block";
+        moveTooltip(e);
+      }
+
+      function moveTooltip(e) {
+        const padding = 15;
+        let x = e.clientX + padding;
+        let y = e.clientY + padding;
+
+        // ป้องกัน tooltip หลุดจอ
+        if (x + tooltip.offsetWidth > window.innerWidth) {
+          x = e.clientX - tooltip.offsetWidth - padding;
+        }
+        if (y + tooltip.offsetHeight > window.innerHeight) {
+          y = e.clientY - tooltip.offsetHeight - padding;
+        }
+
+        tooltip.style.left = x + "px";
+        tooltip.style.top = y + "px";
+      }
+
+      function hideTooltip() {
+        tooltip.style.display = "none";
+      }
+
       // --- 4. Calendar Generation ---
       function generateCalendars() {
         const container = document.getElementById("calendar-container");
@@ -1628,12 +1623,19 @@
             cell.setAttribute("data-date", dateString);
 
             let innerHTML = `<span class="day-number">${day}</span>`;
-            innerHTML += `<div class="event-dot">&bull;</div>`;
+            innerHTML += `<div class="event-dot"></div>`;
             cell.innerHTML = innerHTML;
 
             if (dateString === todayString) {
               cell.classList.add("is-today");
             }
+
+            // Tooltip Events
+            cell.addEventListener("mouseenter", (e) =>
+              showTooltip(e, cell.getAttribute("data-tooltip"))
+            );
+            cell.addEventListener("mousemove", (e) => moveTooltip(e));
+            cell.addEventListener("mouseleave", () => hideTooltip());
 
             cell.addEventListener("dblclick", () => openModal(dateString));
             grid.appendChild(cell);
@@ -1653,11 +1655,13 @@
           const cellDate = cell.getAttribute("data-date");
           if (!cellDate) return;
 
-          let tooltipParts = [];
+          let tooltipHtml = "";
 
           if (holidayMap.has(cellDate)) {
             cell.classList.add("is-holiday");
-            tooltipParts.push("⭐ วันหยุด: " + holidayMap.get(cellDate));
+            tooltipHtml += `<span class="tooltip-holiday">⭐ ${holidayMap.get(
+              cellDate
+            )}</span>`;
           } else {
             cell.classList.remove("is-holiday");
           }
@@ -1670,24 +1674,23 @@
 
           if (tasksOnThisDay.length > 0) {
             cell.classList.add("has-event");
-            const taskDetails = tasksOnThisDay.map((t) => {
+            tasksOnThisDay.forEach((t) => {
               let timeStr = "";
               if (t.startTime || t.endTime) {
-                timeStr = ` (${t.startTime || "00:00"} ถึง ${
-                  t.endTime || "23:59"
-                })`;
+                timeStr = `<small style="display:block; font-size:0.7rem; color:rgba(255,255,255,0.7);">${
+                  t.startTime || "00:00"
+                } - ${t.endTime || "23:59"}</small>`;
               }
-              return `- ${t.name}${timeStr}`;
+              tooltipHtml += `<span class="tooltip-task">📝 ${t.name}${timeStr}</span>`;
             });
-            tooltipParts.push("📝 กิจกรรม/งาน:\n" + taskDetails.join("\n"));
           } else {
             cell.classList.remove("has-event");
           }
 
-          if (tooltipParts.length > 0) {
-            cell.title = tooltipParts.join("\n\n");
+          if (tooltipHtml) {
+            cell.setAttribute("data-tooltip", tooltipHtml);
           } else {
-            cell.title = "";
+            cell.removeAttribute("data-tooltip");
           }
         });
       }
@@ -1929,7 +1932,7 @@
 
         if (!supabaseClient) {
           list.innerHTML =
-            '<p style="color: #e53e3e; text-align: center; margin-top: 40px; font-weight: 600;">⚠️ กรุณาใส่ Supabase Anon Key ตัวเต็มของคุณในซอร์สโค้ด (ตรงตัวแปร supabaseKey) เพื่อเชื่อมต่อฐานข้อมูล</p>';
+            '<p style="color: #e53e3e; text-align: center; margin-top: 40px; font-weight: 600;">⚠️ กรุณาใส่ Supabase Anon Key ในซอร์สโค้ดเพื่อเชื่อมต่อ</p>';
           return;
         }
 
@@ -1946,11 +1949,8 @@
         }
 
         if (filteredTasks.length === 0) {
-          const emptyMsg =
-            currentFilter === "upcoming"
-              ? "ไม่มีงานที่ต้องทำในเร็วๆ นี้"
-              : "ยังไม่มีงานที่บันทึกไว้";
-          list.innerHTML = `<p style="color: #a0aec0; text-align: center; margin-top: 40px;">${emptyMsg}</p>`;
+          const emptyMsg = currentFilter === "upcoming" ? "ไม่มีงานที่ต้องทำในเร็วๆ นี้" : "ยังไม่มีงานที่บันทึกไว้";
+          list.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 40px; font-size: 0.9rem;">${emptyMsg}</p>`;
           return;
         }
 
@@ -1961,92 +1961,89 @@
           return a.targetTime - b.targetTime;
         });
 
+        const dayColors = [
+          "#ef4444", // Sun - Rose
+          "#facc15", // Mon - Yellow
+          "#f472b6", // Tue - Pink
+          "#22c55e", // Wed - Green
+          "#f97316", // Thu - Orange
+          "#3b82f6", // Fri - Blue
+          "#a855f7", // Sat - Purple
+        ];
+
         filteredTasks.forEach((task) => {
           const card = document.createElement("div");
           card.className = "task-card";
+
+          // กำหนดสีตามวันในสัปดาห์ (Sunday-Saturday)
+          const dateParts = (task.startDate || task.date).split("-");
+          const dateForColor = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+          const dayOfWeek = dateForColor.getDay();
+          card.style.setProperty("--card-accent", dayColors[dayOfWeek]);
 
           const isExpired = new Date().getTime() > task.targetTime;
           if (isExpired) card.classList.add("expired");
 
           const sDate = task.startDate || task.date;
           const eDate = task.endDate || task.date;
-          const sTime = task.startTime ? ` ${task.startTime} น.` : "";
-          const eTime = task.endTime ? ` ${task.endTime} น.` : "";
+          const sTime = task.startTime ? ` ${task.startTime}` : "";
+          const eTime = task.endTime ? ` ${task.endTime}` : "";
 
-          let dateDisplayStr = "";
-          if (sDate === eDate) {
-            dateDisplayStr = `วันที่ ${sDate} &bull; เวลา${sTime} - ${eTime}`;
-          } else {
-            dateDisplayStr = `เริ่ม: ${sDate}${sTime} &nbsp;&rarr;&nbsp; สิ้นสุด: ${eDate}${eTime}`;
+          let dateDisplayStr = (sDate === eDate) ? `${sDate} • ${sTime} - ${eTime}` : `${sDate} → ${eDate}`;
+
+          let badgesHtml = "";
+          if (task.pinned) {
+            badgesHtml += `<span class="task-badge badge-pinned" title="Pinned"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M21 17h-14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 2 10.76V6h1a2 2 0 0 0 0-4h16a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 19 15.24Z"></path></svg></span>`;
+          }
+          if (task.desc) {
+            badgesHtml += `<span class="task-badge badge-desc" title="Has Details" style="padding: 4px 6px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>`;
           }
 
-          const hasDescIcon = task.desc
-            ? `<svg style="margin-left:6px; vertical-align:text-bottom; color:#718096;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
-            : "";
-
           if (task.desc) {
-            card.setAttribute(
-              "ondblclick",
-              "this.classList.toggle('expanded')"
-            );
-            card.title = "ดับเบิลคลิกเพื่อดู/ซ่อนรายละเอียดกิจกรรม";
+            card.setAttribute("ondblclick", "this.classList.toggle('expanded')");
             card.style.cursor = "pointer";
           }
 
           let html = `
           <div class="task-header">
-            <div class="task-title">${task.name}${hasDescIcon}</div>
+            <div class="task-main-info">
+              ${badgesHtml ? `<div class="task-badge-container">${badgesHtml}</div>` : ""}
+              <h3 class="task-title">${task.name}</h3>
+            </div>
             <div class="task-actions">
-              <button class="btn-action btn-edit" onclick="editTask(${
-                task.id
-              })" title="แก้ไขงาน">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <button class="btn-action" onclick="editTask(${task.id})" title="แก้ไข">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               </button>
-              <button class="btn-action btn-pin ${
-                task.pinned ? "active" : ""
-              }" onclick="togglePin(${task.id})" title="${
-            task.pinned ? "เลิกปักหมุด" : "ปักหมุด"
-          }">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="${
-                  task.pinned ? "currentColor" : "none"
-                }" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+              <button class="btn-action ${task.pinned ? "active" : ""}" onclick="togglePin(${task.id})" title="ปักหมุด">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="${task.pinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2.5"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
               </button>
-              <button class="btn-action btn-delete" onclick="showConfirmDelete(${
-                task.id
-              })" title="ลบงานนี้">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              <button class="btn-action" onclick="showConfirmDelete(${task.id})" title="ลบ">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
           </div>
-          <div class="task-date">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            <span>${dateDisplayStr}</span>
+          
+          <div class="task-body">
+            <div class="task-date-info">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <span>${dateDisplayStr}</span>
+            </div>
+          </div>
+
+          <div class="task-footer">
+            ${task.useTimer ? `
+              <div class="${isExpired ? "countdown expired-timer" : "countdown"}" data-target="${task.targetTime}" data-alert-days="${task.alertDays || 1}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span class="timer-text">...</span>
+              </div>
+            ` : ""}
           </div>
         `;
 
-          if (task.useTimer) {
-            const timerClass = isExpired
-              ? "countdown expired-timer"
-              : "countdown";
-            const alertDaysAttr =
-              task.alertDays !== undefined ? task.alertDays : 1;
-            html += `
-            <div class="${timerClass}" data-target="${task.targetTime}" data-alert-days="${alertDaysAttr}">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span class="timer-text">กำลังคำนวณเวลา...</span>
-            </div>
-          `;
-          }
-
           if (task.desc) {
-            let formattedDesc = task.desc
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;");
-            const urlRegex =
-              /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
-            formattedDesc = formattedDesc.replace(urlRegex, function (url) {
-              return `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">${url}</a>`;
-            });
+            let formattedDesc = task.desc.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const urlRegex = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
+            formattedDesc = formattedDesc.replace(urlRegex, (url) => `<a href="${url}" target="_blank" onclick="event.stopPropagation();">${url}</a>`);
             formattedDesc = formattedDesc.replace(/\n/g, "<br>");
             html += `<div class="task-description">${formattedDesc}</div>`;
           }
