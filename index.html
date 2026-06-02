@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Task & Holiday Dashboard</title>
 
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
+
     <!-- เพิ่ม Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -467,6 +469,7 @@
         z-index: 9000;
         padding: 20px;
         animation: fadeIn 0.3s ease-out;
+        overflow-y: auto; /* เพิ่มการเลื่อนสำหรับกรณีจอเล็ก */
       }
 
       @keyframes modalZoom {
@@ -610,6 +613,7 @@
         align-items: center;
         z-index: 8000;
         padding: 20px;
+        overflow-y: auto;
       }
 
       .access-card {
@@ -620,6 +624,23 @@
         max-width: 440px;
         box-shadow: var(--shadow-lg);
         text-align: center;
+        margin: auto;
+      }
+
+      #mobile-add-btn {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 56px; height: 56px;
+        border-radius: 50%;
+        align-items: center; justify-content: center;
+        box-shadow: var(--shadow-lg);
+        border: none;
+        cursor: pointer;
+        z-index: 100;
+        background: var(--primary);
+        color: white;
       }
 
       /* ---- Mobile & Responsiveness ---- */
@@ -628,25 +649,51 @@
       }
 
       @media (max-width: 800px) {
-        #left-pane { display: none; }
-        #right-pane { min-width: 100%; padding: 16px; }
-        #mobile-add-btn, #mobile-refresh-btn { display: flex; }
-      }
+        #left-pane { 
+          display: none; 
+          position: fixed;
+          top: 0; left: 0; width: 100%; height: 100%;
+          z-index: 5000;
+          background-color: white;
+          padding: 16px;
+          overflow-y: auto;
+        }
+        #left-pane.show-mobile { display: flex; }
 
-      #mobile-add-btn, #mobile-refresh-btn {
-        display: none;
-        position: fixed;
-        bottom: 24px;
-        width: 56px; height: 56px;
-        border-radius: 50%;
-        align-items: center; justify-content: center;
-        box-shadow: var(--shadow-lg);
-        border: none;
-        cursor: pointer;
-        z-index: 100;
+        #right-pane { min-width: 100%; padding: 16px; }
+        #mobile-add-btn { display: flex; }
+
+        /* Access Card Mobile Optimization */
+        .access-card {
+          padding: 24px 20px;
+          border-radius: 24px;
+          max-width: 90%;
+        }
+        .access-card h2 { font-size: 1.4rem; }
+
+        /* Modal Mobile Optimization */
+        .modal-content {
+          padding: 24px 20px;
+          border-radius: 24px;
+          max-width: 95%;
+          margin: 10px;
+        }
+        .modal-content h3 { font-size: 1.3rem; margin-bottom: 20px; }
+        
+        .date-time-row-responsive {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 6px !important;
+        }
+        .date-time-row-responsive span { text-align: left !important; width: auto !important; }
+        .date-time-row-responsive input { width: 100% !important; }
+
+        .form-actions {
+          flex-direction: column-reverse;
+          gap: 10px;
+        }
+        .form-actions button { width: 100%; padding: 16px; }
       }
-      #mobile-add-btn { right: 24px; background: var(--primary); color: white; }
-      #mobile-refresh-btn { right: 92px; background: white; color: var(--primary); border: 1px solid var(--border-color); }
     </style>
   </head>
   <body>
@@ -854,25 +901,6 @@
     </div>
 
     <!-- Floating Action Buttons สำหรับหน้าจอมือถือ -->
-    <button
-      id="mobile-refresh-btn"
-      onclick="manualRefresh()"
-      title="รีเฟรชข้อมูล"
-    >
-      <svg
-        id="mobile-refresh-icon"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-      </svg>
-    </button>
     <button id="mobile-add-btn" onclick="openModal()" title="เพิ่มงานใหม่">
       <svg
         width="28"
@@ -920,6 +948,7 @@
         <div class="form-group">
           <label>ช่วงเวลา</label>
           <div
+            class="date-time-row-responsive"
             style="
               display: flex;
               gap: 10px;
@@ -939,7 +968,10 @@
             <input type="date" id="start-date" style="flex: 2" />
             <input type="time" id="start-time" style="flex: 1" />
           </div>
-          <div style="display: flex; gap: 10px; align-items: center">
+          <div 
+            class="date-time-row-responsive"
+            style="display: flex; gap: 10px; align-items: center"
+          >
             <span
               style="
                 width: 45px;
@@ -1180,8 +1212,17 @@
 
       let supabaseClient = null;
 
-      if (supabaseKey && supabaseKey.split(".").length === 3) {
-        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+      try {
+        if (typeof window.supabase !== "undefined" && supabaseKey && supabaseKey.split(".").length === 3) {
+          supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        } else if (typeof window.supabase === "undefined") {
+          console.error("Supabase library not loaded. Check your internet connection or CDN.");
+          setTimeout(() => {
+             showAlert("ไม่สามารถโหลดระบบฐานข้อมูลได้ (CDN Blocked) โปรดรีเฟรชหรือตรวจสอบอินเทอร์เน็ต");
+          }, 1000);
+        }
+      } catch (err) {
+        console.error("Supabase Init Error:", err);
       }
 
       // --- Custom Alert System ---
